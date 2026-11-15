@@ -1,0 +1,10 @@
+{
+  "name": "演奏记录的跨轨道声部与踏板事件采集",
+  "probe": "/performances",
+  "identityFields": [
+    "recording",
+    "channel",
+    "pitch",
+    "pressed"
+  ]
+}
