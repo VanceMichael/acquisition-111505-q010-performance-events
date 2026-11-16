@@ -47,7 +47,32 @@ export class Archive {
   async list() {
     await this.tail;
     const names = (await readdir(join(this.directory, 'receipts'))).filter(name => name.endsWith('.json')).sort();
-    return Promise.all(names.map(async name => JSON.parse(await readFile(join(this.directory, 'receipts', name), 'utf8'))));
+    return Promise.all(names.map(async name => ({
+      receipt: name.slice(0, -'.json'.length),
+      ...JSON.parse(await readFile(join(this.directory, 'receipts', name), 'utf8')),
+    })));
+  }
+  async record(key) {
+    if (!/^[0-9a-f]{64}$/.test(key)) throw new Error('收件标识格式无效');
+    await this.tail;
+    try {
+      return {
+        receipt: key,
+        ...JSON.parse(await readFile(join(this.directory, 'receipts', `${key}.json`), 'utf8')),
+      };
+    } catch (error) {
+      if (error.code === 'ENOENT') return null;
+      throw error;
+    }
+  }
+  async version(key, version) {
+    const record = await this.record(key);
+    if (!record) return null;
+    const entry = version === undefined
+      ? record.versions[record.versions.length - 1]
+      : record.versions.find(item => item.version === version);
+    if (!entry) return null;
+    return { record, entry, bytes: await this.bytes(entry.sha256) };
   }
   async bytes(sha256) {
     if (!/^[0-9a-f]{64}$/.test(sha256)) throw new Error('摘要格式无效');
